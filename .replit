@@ -29,7 +29,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python artifacts/main.py"
+args = "python main.py"
 waitForPort = 8080
 
 [agent]
