@@ -1,7 +1,5 @@
 flask
+requests
 google-genai
 pillow
-flask
-google-genai
-pillow
-sift-stack-py
+gunicorn

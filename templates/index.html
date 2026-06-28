@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoreManager 1.0</title>
+    
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        .view { display: none; }
+        .view.active { display: flex; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans min-h-screen flex flex-col items-center justify-start antialiased overflow-x-hidden">
+    
+    <div class="w-full max-w-md bg-white min-h-screen flex flex-col shadow-xl relative pb-24 overflow-x-hidden">
+        
+        <div id="login-view" class="view active flex-col flex-1 bg-slate-900 justify-center items-center p-8">
+            <div class="text-center mb-10">
+                <img src="{{ url_for('static', filename='icon.png') }}" class="w-28 h-28 mx-auto rounded-[2rem] shadow-2xl mb-6 border border-slate-700" alt="StoreManager Logo">
+                <h1 class="text-3xl font-extrabold text-white tracking-wide">StoreManager</h1>
+                <p class="text-blue-400 font-semibold mt-2 text-sm tracking-widest uppercase">Version 1.0</p>
+            </div>
+            
+            <div class="w-full animate-fade-in-up">
+                <button onclick="window.signInWithGoogle()" class="w-full bg-white border border-slate-200 text-slate-800 font-bold py-3.5 rounded-xl shadow-lg hover:bg-slate-50 transition flex items-center justify-center gap-3 active:scale-95">
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google"> Continue with Google
+                </button>
+            </div>
+            
+            <p class="text-center text-[10px] text-slate-500 mt-8 px-4">Secure cloud synchronization active.</p>
+        </div>
+
+        <div id="onboarding-view" class="view flex-col flex-1 bg-white p-6 hidden">
+            <div class="text-center mb-6 pt-4">
+                <img src="{{ url_for('static', filename='icon.png') }}" class="w-16 h-16 mx-auto rounded-2xl shadow-md mb-4" alt="StoreManager Logo">
+                <h2 class="text-2xl font-bold text-slate-800">Welcome!</h2>
+                <p class="text-sm text-slate-500 font-medium mt-1">Let's set up your store profile.</p>
+            </div>
+            <div class="space-y-4 flex-1 overflow-y-auto">
+                <h3 class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2 border-b border-slate-100 pb-1">Personal Details</h3>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Your Name</label>
+                    <input type="text" id="onboard-name" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Contact Number</label>
+                    <input type="tel" id="onboard-personal-contact" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <h3 class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2 mt-6 border-b border-slate-100 pb-1">Store Details</h3>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Store Name</label>
+                    <input type="text" id="onboard-shop-name" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Store Address</label>
+                    <textarea id="onboard-shop-address" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 h-20"></textarea>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Store Support Contact (Optional)</label>
+                    <input type="tel" id="onboard-shop-contact" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+            </div>
+            <button onclick="window.completeOnboarding()" class="w-full bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-md mt-4 active:scale-95 transition">Save & Continue</button>
+        </div>
+
+        {% include 'dashboard.html' %}
+        {% include 'verify.html' %}
+        {% include 'expanded.html' %}
+        {% include 'invoice.html' %}
+
+        <div id="details-view" class="view flex-col flex-1 bg-white p-6 hidden">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
+                <button onclick="window.switchView('dashboard-view')" class="text-slate-600 hover:text-slate-900 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+                <h2 class="text-lg font-bold text-slate-800">Repair Summary</h2>
+                <div class="w-4"></div>
+            </div>
+            <div class="space-y-4 flex-1 overflow-y-auto">
+                <div class="text-[10px] text-slate-400 font-bold flex items-center justify-between mb-2">
+                    <span id="details-date"></span>
+                </div>
+                <img id="details-img" src="" class="w-full h-40 object-cover rounded-xl border border-slate-200 shadow-sm hidden mb-4">
+                <div id="details-fields-container" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <div id="user-profile-view" class="view flex-col flex-1 bg-white p-6 hidden">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
+                <button onclick="window.switchView('dashboard-view')" class="text-slate-600 hover:text-slate-900 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+                <h2 class="text-lg font-bold text-slate-800">User Profile</h2>
+                <div class="w-4"></div>
+            </div>
+            <div class="space-y-4 flex-1">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Your Name</label>
+                    <input type="text" id="user-name-input" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Personal Contact</label>
+                    <input type="tel" id="user-contact-input" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <button onclick="window.saveProfilesToCloud(true)" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition">Update Profile</button>
+        </div>
+
+        <div id="shop-profile-view" class="view flex-col flex-1 bg-white p-6 hidden">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
+                <button onclick="window.switchView('dashboard-view')" class="text-slate-600 hover:text-slate-900 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+                <h2 class="text-lg font-bold text-slate-800">Shop Profile</h2>
+                <div class="w-4"></div>
+            </div>
+            <div class="space-y-4 flex-1">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Shop Name</label>
+                    <input type="text" id="shop-name-input" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Shop Address</label>
+                    <textarea id="shop-address-input" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"></textarea>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Contact Number</label>
+                    <input type="tel" id="shop-contact-input" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <button onclick="window.saveProfilesToCloud(false)" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition">Update Shop Details</button>
+        </div>
+    </div>
+
+    <div id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-white shadow-2xl z-[9000] transform -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="bg-slate-900 text-white p-6 pb-4 flex items-center gap-4">
+            <img src="{{ url_for('static', filename='icon.png') }}" class="w-12 h-12 rounded-xl shadow-md" alt="Logo">
+            <div class="overflow-hidden">
+                <h2 class="text-xl font-bold tracking-wide">StoreManager</h2>
+                <p class="text-blue-400 text-[10px] uppercase font-bold mt-1 truncate" id="sidebar-user-name">Loading...</p>
+            </div>
+        </div>
+        <div class="p-4 flex-1 space-y-2 flex flex-col">
+            <button onclick="window.openProfileScreen('user')" class="w-full text-left px-3 py-3 hover:bg-slate-50 rounded-lg text-sm font-semibold flex items-center gap-3 text-slate-700 transition">
+                <i class="fa-solid fa-user text-blue-600 w-5"></i> User Profile
+            </button>
+            <button onclick="window.openProfileScreen('shop')" class="w-full text-left px-3 py-3 hover:bg-slate-50 rounded-lg text-sm font-semibold flex items-center gap-3 text-slate-700 transition">
+                <i class="fa-solid fa-store text-indigo-500 w-5"></i> Shop Profile
+            </button>
+            
+            <button onclick="window.toggleSidebarAddMenu()" class="w-full text-left px-3 py-3 mt-2 bg-slate-50 border border-slate-100 hover:bg-slate-100 rounded-lg text-sm font-bold flex items-center justify-between text-slate-800 transition">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-plus text-emerald-600 w-5 text-lg"></i> Add New Record</div>
+                <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300" id="sidebar-add-icon"></i>
+            </button>
+            
+            <div id="sidebar-add-menu" class="hidden flex-col pl-11 pr-3 py-2 space-y-2 border-l-2 border-emerald-100 ml-4">
+                <button onclick="document.getElementById('camera-upload').click();" class="text-left py-2 text-sm text-slate-600 font-medium flex items-center gap-2 hover:text-blue-600"><i class="fa-solid fa-camera w-4"></i> Camera Scan</button>
+                <button onclick="document.getElementById('gallery-upload').click();" class="text-left py-2 text-sm text-slate-600 font-medium flex items-center gap-2 hover:text-indigo-600"><i class="fa-solid fa-image w-4"></i> Gallery Import</button>
+                <button onclick="window.openManualEntry();" class="text-left py-2 text-sm text-slate-600 font-medium flex items-center gap-2 hover:text-emerald-600"><i class="fa-solid fa-pen w-4"></i> Manual Form</button>
+            </div>
+
+            <div class="border-t border-slate-100 mt-auto pt-4 space-y-3">
+                <button onclick="window.signOutUser()" class="w-full text-left px-3 py-3 bg-rose-50 hover:bg-rose-100 rounded-lg text-sm font-bold flex items-center gap-3 text-rose-700 transition">
+                    <i class="fa-solid fa-arrow-right-from-bracket w-5"></i> Sign Out
+                </button>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">Version 1.0</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="sidebar-overlay" onclick="window.toggleSidebar()" class="fixed inset-0 bg-black/50 z-[8999] hidden backdrop-blur-sm"></div>
+
+    <div id="contact-modal" class="fixed inset-0 bg-black/60 z-[9500] hidden flex-col justify-end pb-8 px-4">
+        <div class="bg-white rounded-2xl p-5 shadow-2xl animate-fade-in-up">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">Contact Customer</h3>
+            <div class="space-y-3">
+                <button onclick="window.executeContact('call')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-phone text-lg"></i> Cellular Call
+                </button>
+                <button onclick="window.executeContact('whatsapp')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-lg"></i> WhatsApp Message
+                </button>
+                <button onclick="window.closeContactMenu()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 mt-2 rounded-xl">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="fixed top-0 left-0 w-full h-full bg-white/80 backdrop-blur-sm z-[9999] hidden flex-col justify-center items-center">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p class="text-sm font-bold text-slate-700" id="loading-text">Processing...</p>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

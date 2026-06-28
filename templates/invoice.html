@@ -1,0 +1,48 @@
+<!-- ========================================== -->
+<!-- MODULE: VIRTUAL INVOICE VIEW               -->
+<!-- ========================================== -->
+<div id="invoice-view" class="view flex-col flex-1 bg-slate-200 p-4 hidden overflow-y-auto">
+    <!-- Top Action Bar -->
+    <div class="flex items-center justify-between mb-4">
+        <button onclick="window.switchView('dashboard-view')" class="bg-white text-slate-700 px-3 py-1.5 rounded-lg shadow-sm font-semibold text-xs flex items-center gap-1 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-chevron-left"></i> Back
+        </button>
+        <button onclick="window.shareInvoiceImage()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg shadow-sm font-bold text-xs flex items-center gap-1.5 hover:bg-blue-700 transition">
+            <i class="fa-solid fa-share-nodes text-sm"></i> Share Invoice
+        </button>
+    </div>
+
+    <!-- Professional Digital Invoice Layout (Target for html2canvas) -->
+    <div id="bill-printout" class="bg-white shadow-xl max-w-sm mx-auto w-full rounded-xl overflow-hidden flex flex-col border border-slate-200">
+        
+        <!-- Professional Colored Header -->
+        <div class="bg-slate-800 text-white p-5 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+            <h2 class="text-xl font-extrabold tracking-wide uppercase mb-1" id="shop-name-bill">SHOP NAME</h2>
+            <p class="text-[10px] text-slate-300 whitespace-pre-wrap leading-tight" id="shop-address-bill"></p>
+            <p class="text-[11px] text-emerald-400 mt-2 font-bold tracking-widest" id="shop-contact-bill"></p>
+        </div>
+
+        <!-- Invoice Meta Data -->
+        <div class="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center">
+            <div class="space-y-1 text-[10px]">
+                <p><span class="font-bold text-slate-400 uppercase">Date:</span> <span id="bill-date" class="font-semibold text-slate-700"></span></p>
+                <p><span class="font-bold text-slate-400 uppercase">Time:</span> <span id="bill-time" class="font-semibold text-slate-700"></span></p>
+                <p><span class="font-bold text-slate-400 uppercase">Inv No:</span> <span id="bill-id" class="font-bold text-blue-600 tracking-wider"></span></p>
+            </div>
+            <!-- Hidden by default, unhidden by JS if image exists -->
+            <img id="bill-img" src="" class="w-14 h-14 object-cover border-2 border-white rounded-lg shadow-sm hidden">
+        </div>
+
+        <!-- Dynamic Payload (Strictly Ordered by JS) -->
+        <div class="p-5 space-y-2 text-[12px]" id="bill-fields-payload">
+            <!-- Target details loaded here dynamically -->
+        </div>
+
+        <!-- Professional Footer -->
+        <div class="bg-slate-50 p-4 text-center border-t border-slate-200 mt-auto">
+            <p class="text-[11px] text-slate-800 font-bold mb-1">Thank you for your business!</p>
+            <p class="text-[9px] text-slate-400 font-semibold uppercase tracking-widest">This is a system generated invoice.</p>
+        </div>
+    </div>
+</div>

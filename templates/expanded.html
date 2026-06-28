@@ -1,0 +1,25 @@
+<!-- ========================================== -->
+<!-- MODULE: EXPANDED DETAIL (EDIT) VIEW        -->
+<!-- ========================================== -->
+<div id="expanded-view" class="view flex-col flex-1 bg-white p-6 hidden">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
+        <button onclick="window.switchView('dashboard-view')" class="text-slate-600 hover:text-slate-900 transition">
+            <i class="fa-solid fa-arrow-left text-lg"></i>
+        </button>
+        <h2 class="text-lg font-bold text-slate-800">Edit Record</h2>
+        <div class="w-4"></div>
+    </div>
+
+    <div class="space-y-4 flex-1 overflow-y-auto" id="expanded-fields-container">
+        <!-- Editing fields injected dynamically here -->
+    </div>
+
+    <div class="mt-6 space-y-3">
+        <button onclick="window.triggerNewFieldDialog()" class="w-full border-2 border-dashed border-slate-300 hover:border-blue-500 text-slate-600 hover:text-blue-600 font-semibold py-3 rounded-xl text-sm transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-folder-plus"></i> Add New Empty Field
+        </button>
+        <button onclick="window.saveExpandedEdits()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md transition hover:bg-blue-700 flex justify-center items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Update Cloud Database
+        </button>
+    </div>
+</div>
