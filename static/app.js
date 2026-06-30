@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 currentUser = null;
                 repairDatabase = [];
-                // Clear all input fields just in case
                 document.getElementById('login-email').value = '';
                 document.getElementById('login-password').value = '';
                 document.getElementById('signup-email').value = '';
@@ -51,7 +50,7 @@ window.showLoad = function(msg) {
     const el = document.getElementById('loading-overlay');
     document.getElementById('loading-text').innerText = msg;
     el.classList.remove('hidden');
-    el.classList.add('flex'); // Triggers flex centering
+    el.classList.add('flex');
 };
 
 window.hideLoad = function() {
@@ -87,7 +86,6 @@ window.loginWithEmail = function() {
     });
 };
 
-// New dedicated signup function reading from the new signup view
 window.processSignUp = function() {
     const email = document.getElementById('signup-email').value.trim();
     const pass = document.getElementById('signup-password').value.trim();
@@ -202,7 +200,6 @@ async function fetchDatabaseRecords() {
     } catch(e) { console.error("Fetch error", e); }
 }
 
-// --- UI COMPONENTS & NAVIGATION ---
 window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
@@ -249,25 +246,71 @@ window.toggleFabMenu = function(forceClose = false) {
     }
 };
 
-// --- AI EXTRACTION & FORM SUBMISSION ---
+// --- IMAGE COMPRESSOR ---
+async function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800; // Perfect size for reading text without crashing server
+                let scaleSize = MAX_WIDTH / img.width;
+                if (scaleSize > 1) scaleSize = 1; // Don't enlarge small images
+
+                canvas.width = img.width * scaleSize;
+                canvas.height = img.height * scaleSize;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob((blob) => {
+                    resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.7); // Compress to 70% quality JPEG
+            };
+            img.onerror = (e) => reject(e);
+        };
+        reader.onerror = (e) => reject(e);
+    });
+}
+
+// --- AI EXTRACTION & FORM SUBMISSION (UPDATED WITH COMPRESSION) ---
 window.uploadAndScanImage = async function(input) {
     if (!input.files || !input.files[0]) return;
     window.toggleFabMenu(true);
     if(!document.getElementById('sidebar').classList.contains('-translate-x-full')) window.toggleSidebar();
     
-    window.showLoad("Extracting details & Uploading cloud image...");
-    const formData = new FormData();
-    formData.append('image', input.files[0]);
-
+    window.showLoad("Optimizing image...");
+    
     try {
+        const compressedFile = await compressImage(input.files[0]);
+        
+        window.showLoad("Extracting details & Uploading...");
+        const formData = new FormData();
+        formData.append('image', compressedFile);
+
         const response = await fetch('/scan-image', { method: 'POST', body: formData });
+        
+        // Safety check to prevent JSON parsing errors if server fails
+        if (!response.ok) {
+            throw new Error(`Server Error (${response.status}). Please check your Render logs or try again.`);
+        }
+
         const result = await response.json();
-        if (response.ok) {
+        if (result.image_url) {
             pendingImageSrc = result.image_url; 
             window.openVerifyView(result);
-        } else alert("System Error: " + (result.error || "Failed extraction"));
-    } catch (err) { alert("Network error: " + err.message); } 
-    finally { window.hideLoad(); input.value = ''; }
+        } else {
+            alert("System Error: " + (result.error || "Failed extraction"));
+        }
+    } catch (err) { 
+        alert("Upload Error: " + err.message); 
+    } finally { 
+        window.hideLoad(); 
+        input.value = ''; 
+    }
 };
 
 window.openManualEntry = function() {
@@ -279,21 +322,36 @@ window.openManualEntry = function() {
 
 window.handleManualImageUpload = async function(input) {
     if (!input.files || !input.files[0]) return;
-    window.showLoad("Uploading image...");
-    const formData = new FormData();
-    formData.append('image', input.files[0]);
-
+    window.showLoad("Optimizing image...");
+    
     try {
+        const compressedFile = await compressImage(input.files[0]);
+        
+        window.showLoad("Uploading image...");
+        const formData = new FormData();
+        formData.append('image', compressedFile);
+
         const response = await fetch('/scan-image', { method: 'POST', body: formData });
+        
+        if (!response.ok) {
+            throw new Error(`Server Error (${response.status}).`);
+        }
+
         const result = await response.json();
-        if (response.ok) {
+        if (result.image_url) {
             pendingImageSrc = result.image_url;
             document.getElementById('verify-image').src = pendingImageSrc;
             document.getElementById('verify-image').classList.remove('hidden');
             document.getElementById('verify-image-placeholder').classList.add('hidden');
-        } else alert("Upload Failed.");
-    } catch (err) { alert("Network error: " + err.message); }
-    finally { window.hideLoad(); input.value = ''; }
+        } else {
+            alert("Upload Failed.");
+        }
+    } catch (err) { 
+        alert("Upload Error: " + err.message); 
+    } finally { 
+        window.hideLoad(); 
+        input.value = ''; 
+    }
 };
 
 window.createInputHTML = function(key, value, label, type="text") {
