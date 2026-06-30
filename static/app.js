@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { initializeFirestore, collection, addDoc, getDocs, updateDoc, doc, query, orderBy, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 let app, db, auth, provider;
@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         auth = getAuth(app);
         provider = new GoogleAuthProvider();
 
-        // Listen for Login State Changes
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -33,22 +32,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 currentUser = null;
                 repairDatabase = [];
+                // Clear all input fields just in case
+                document.getElementById('login-email').value = '';
+                document.getElementById('login-password').value = '';
+                document.getElementById('signup-email').value = '';
+                document.getElementById('signup-password').value = '';
+                document.getElementById('signup-confirm-password').value = '';
+                
                 window.switchView('login-view');
-                hideLoad();
+                window.hideLoad();
             }
         });
-
     } catch (error) { console.error("Init failed:", error); }
 });
 
-function showLoad(msg) {
+// --- LOADING UI LOGIC ---
+window.showLoad = function(msg) {
+    const el = document.getElementById('loading-overlay');
     document.getElementById('loading-text').innerText = msg;
-    document.getElementById('loading-overlay').classList.remove('hidden');
-}
+    el.classList.remove('hidden');
+    el.classList.add('flex'); // Triggers flex centering
+};
 
-function hideLoad() {
-    document.getElementById('loading-overlay').classList.add('hidden');
-}
+window.hideLoad = function() {
+    const el = document.getElementById('loading-overlay');
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+};
 
 window.switchView = function(viewId) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -56,60 +66,83 @@ window.switchView = function(viewId) {
     if(viewId === 'dashboard-view') window.handleSearch();
 };
 
-// --- GOOGLE AUTHENTICATION ---
+// --- AUTHENTICATION LOGIC ---
 window.signInWithGoogle = function() {
-    showLoad("Signing In...");
+    window.showLoad("Signing In...");
     signInWithPopup(auth, provider).catch(error => {
-        hideLoad();
+        window.hideLoad();
         alert("Sign In Error: " + error.message);
+    });
+};
+
+window.loginWithEmail = function() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-password').value.trim();
+    if(!email || !pass) { alert("Please enter both email and password."); return; }
+    
+    window.showLoad("Signing In...");
+    signInWithEmailAndPassword(auth, email, pass).catch(error => {
+        window.hideLoad();
+        alert("Login Failed: " + error.message);
+    });
+};
+
+// New dedicated signup function reading from the new signup view
+window.processSignUp = function() {
+    const email = document.getElementById('signup-email').value.trim();
+    const pass = document.getElementById('signup-password').value.trim();
+    const confirmPass = document.getElementById('signup-confirm-password').value.trim();
+    
+    if(!email || !pass || !confirmPass) { alert("Please fill in all fields."); return; }
+    if(pass !== confirmPass) { alert("Passwords do not match."); return; }
+    if(pass.length < 6) { alert("Password must be at least 6 characters."); return; }
+    
+    window.showLoad("Creating Account...");
+    createUserWithEmailAndPassword(auth, email, pass).catch(error => {
+        window.hideLoad();
+        alert("Registration Failed: " + error.message);
     });
 };
 
 window.signOutUser = function() {
     window.toggleSidebar();
-    showLoad("Signing out...");
+    window.showLoad("Signing out...");
     signOut(auth); 
 };
 
 // --- PROFILE SYNC & ONBOARDING ---
 async function loadCloudProfiles() {
-    showLoad("Syncing Account...");
+    window.showLoad("Syncing Account...");
     try {
         const userDocRef = doc(db, "users", currentUser.uid);
         const docSnap = await getDoc(userDocRef);
         
         if (docSnap.exists()) {
-            // Existing User
             const data = docSnap.data();
             window.userProfile = data.userProfile || { name: currentUser.displayName || '', contact: '' };
             window.shopProfile = data.shopProfile || { name: '', address: '', contact: '' };
             
-            // Populate Edit Screens
             document.getElementById('user-name-input').value = window.userProfile.name;
             document.getElementById('user-contact-input').value = window.userProfile.contact || '';
             document.getElementById('shop-name-input').value = window.shopProfile.name;
             document.getElementById('shop-address-input').value = window.shopProfile.address;
             document.getElementById('shop-contact-input').value = window.shopProfile.contact;
             
-            // Set Sidebar Header
             document.getElementById('sidebar-user-name').innerText = window.userProfile.name || currentUser.email;
 
             await fetchDatabaseRecords();
             window.switchView('dashboard-view');
         } else {
-            // Brand New User -> Go to Onboarding (Prefill name from Google)
             document.getElementById('onboard-name').value = currentUser.displayName || '';
             document.getElementById('onboard-personal-contact').value = '';
             window.switchView('onboarding-view');
         }
-    } catch(err) {
-        alert("Failed to sync profiles: " + err.message);
-    }
-    hideLoad();
+    } catch(err) { alert("Failed to sync profiles: " + err.message); }
+    window.hideLoad();
 }
 
 window.completeOnboarding = async function() {
-    showLoad("Creating your Store...");
+    window.showLoad("Creating your Store...");
     window.userProfile = {
         name: document.getElementById('onboard-name').value.trim(),
         contact: document.getElementById('onboard-personal-contact').value.trim()
@@ -129,12 +162,12 @@ window.completeOnboarding = async function() {
         await loadCloudProfiles();
     } catch(err) {
         alert("Onboarding failed: " + err.message);
-        hideLoad();
+        window.hideLoad();
     }
 };
 
 window.saveProfilesToCloud = async function(isUser) {
-    showLoad("Updating Profile...");
+    window.showLoad("Updating Profile...");
     if (isUser) {
         window.userProfile.name = document.getElementById('user-name-input').value.trim();
         window.userProfile.contact = document.getElementById('user-contact-input').value.trim();
@@ -151,13 +184,11 @@ window.saveProfilesToCloud = async function(isUser) {
             shopProfile: window.shopProfile
         }, { merge: true });
         window.switchView('dashboard-view');
-    } catch(err) {
-        alert("Update failed: " + err.message);
-    }
-    hideLoad();
+    } catch(err) { alert("Update failed: " + err.message); }
+    window.hideLoad();
 };
 
-// --- FIRESTORE FETCH (USER SCOPED) ---
+// --- FIRESTORE DATABASE LOGIC ---
 async function fetchDatabaseRecords() {
     if (!db || !currentUser) return;
     const q = query(collection(db, "users", currentUser.uid, "repairs"), orderBy("timestamp", "desc"));
@@ -171,7 +202,7 @@ async function fetchDatabaseRecords() {
     } catch(e) { console.error("Fetch error", e); }
 }
 
-// --- UI & SIDEBAR TOGGLES ---
+// --- UI COMPONENTS & NAVIGATION ---
 window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
@@ -218,13 +249,13 @@ window.toggleFabMenu = function(forceClose = false) {
     }
 };
 
-// --- DATA ENTRY FLOW ---
+// --- AI EXTRACTION & FORM SUBMISSION ---
 window.uploadAndScanImage = async function(input) {
     if (!input.files || !input.files[0]) return;
     window.toggleFabMenu(true);
     if(!document.getElementById('sidebar').classList.contains('-translate-x-full')) window.toggleSidebar();
     
-    showLoad("Extracting details & Uploading cloud image...");
+    window.showLoad("Extracting details & Uploading cloud image...");
     const formData = new FormData();
     formData.append('image', input.files[0]);
 
@@ -236,7 +267,7 @@ window.uploadAndScanImage = async function(input) {
             window.openVerifyView(result);
         } else alert("System Error: " + (result.error || "Failed extraction"));
     } catch (err) { alert("Network error: " + err.message); } 
-    finally { hideLoad(); input.value = ''; }
+    finally { window.hideLoad(); input.value = ''; }
 };
 
 window.openManualEntry = function() {
@@ -248,7 +279,7 @@ window.openManualEntry = function() {
 
 window.handleManualImageUpload = async function(input) {
     if (!input.files || !input.files[0]) return;
-    showLoad("Uploading image...");
+    window.showLoad("Uploading image...");
     const formData = new FormData();
     formData.append('image', input.files[0]);
 
@@ -262,7 +293,7 @@ window.handleManualImageUpload = async function(input) {
             document.getElementById('verify-image-placeholder').classList.add('hidden');
         } else alert("Upload Failed.");
     } catch (err) { alert("Network error: " + err.message); }
-    finally { hideLoad(); input.value = ''; }
+    finally { window.hideLoad(); input.value = ''; }
 };
 
 window.createInputHTML = function(key, value, label, type="text") {
@@ -311,7 +342,7 @@ window.cancelVerification = function() {
 };
 
 window.saveVerifiedEntry = async function() {
-    showLoad("Saving to Firestore...");
+    window.showLoad("Saving to Firestore...");
     const inputs = document.querySelectorAll('#verify-fields-container input[data-verify-key]');
     const finalData = {};
     inputs.forEach(input => {
@@ -341,10 +372,10 @@ window.saveVerifiedEntry = async function() {
         pendingImageSrc = null; 
         window.switchView('dashboard-view');
     } catch(e) { alert("Save Failed: " + e.message); }
-    hideLoad();
+    window.hideLoad();
 };
 
-// --- FILTERS & SEARCH ---
+// --- SEARCH & FILTER LOGIC ---
 window.checkFiltersActive = function() {
     const queryStr = document.getElementById('search-input').value.trim();
     const clearBtn = document.getElementById('clear-filters-btn');
@@ -415,6 +446,7 @@ window.handleSearch = function() {
     window.renderTiles(filtered);
 };
 
+// --- DATA TILE ACTIONS ---
 window.cycleStatus = async function(docId, event) {
     event.stopPropagation();
     const index = repairDatabase.findIndex(r => r.firestoreId === docId);
@@ -458,13 +490,13 @@ window.renderTiles = function(dataset) {
         tile.addEventListener('touchend', async e => {
             if (touchStartX - e.changedTouches[0].clientX > 90) { 
                 if(confirm("Permanently delete this record?")) {
-                    showLoad("Deleting...");
+                    window.showLoad("Deleting...");
                     try {
                         await deleteDoc(doc(db, "users", currentUser.uid, "repairs", item.firestoreId));
                         repairDatabase = repairDatabase.filter(r => r.firestoreId !== item.firestoreId);
                         window.handleSearch();
                     } catch(err) { alert("Failed to delete."); }
-                    hideLoad();
+                    window.hideLoad();
                 }
             }
         });
@@ -560,7 +592,7 @@ window.triggerNewFieldDialog = function() {
 window.saveExpandedEdits = async function() {
     const index = repairDatabase.findIndex(r => r.firestoreId === activeRecordId);
     if (index === -1) return;
-    showLoad("Updating Cloud...");
+    window.showLoad("Updating Cloud...");
     const inputs = document.querySelectorAll('#expanded-fields-container input');
     const updatedData = {};
     inputs.forEach(input => {
@@ -572,7 +604,7 @@ window.saveExpandedEdits = async function() {
         await updateDoc(doc(db, "users", currentUser.uid, "repairs", activeRecordId), { data: updatedData });
         window.switchView('dashboard-view');
     } catch(e) { alert("Update failed: " + e.message); }
-    hideLoad();
+    window.hideLoad();
 };
 
 window.showContactMenu = function(docId, event) {
@@ -596,6 +628,7 @@ window.executeContact = function(type) {
     window.closeContactMenu();
 };
 
+// --- DIGITAL INVOICE LOGIC ---
 window.generateInvoice = function(docId, event) {
     if(event) event.stopPropagation();
     activeRecordId = docId;
@@ -663,7 +696,7 @@ window.generateInvoice = function(docId, event) {
 };
 
 window.shareInvoiceImage = async function() {
-    showLoad("Generating Digital Invoice...");
+    window.showLoad("Generating Digital Invoice...");
     const invoiceElement = document.getElementById('bill-printout');
     
     try {
@@ -676,7 +709,7 @@ window.shareInvoiceImage = async function() {
         canvas.toBlob(async (blob) => {
             if (!blob) {
                 alert("Canvas failed to create image data.");
-                hideLoad();
+                window.hideLoad();
                 return;
             }
             
@@ -702,11 +735,11 @@ window.shareInvoiceImage = async function() {
                 URL.revokeObjectURL(url);
                 alert("Direct sharing not supported on this browser. Invoice has been saved to your downloads.");
             }
-            hideLoad();
+            window.hideLoad();
         }, "image/png");
     } catch (error) {
         console.error(error);
         alert("Generation Error: " + error.message);
-        hideLoad();
+        window.hideLoad();
     }
 };
