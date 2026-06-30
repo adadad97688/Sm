@@ -85,6 +85,14 @@ def proxy_image():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+from flask import send_from_directory
+
+@app.route('/.well-known/assetlinks.json')
+def asset_links():
+    return send_from_directory('static', 'assetlinks.json', mimetype='application/json')
+
+
 @app.route('/scan-image', methods=["POST"])
 def scan_image():
     if 'image' not in request.files or request.files['image'].filename == '':
