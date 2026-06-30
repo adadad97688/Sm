@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StoreManager 1.0</title>
-    
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}");
+    }
+</script>
+
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
     
     <!-- Forced Tailwind V3 for html2canvas compatibility -->
